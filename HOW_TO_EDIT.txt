@@ -1,0 +1,34 @@
+EASY EDITING
+
+You normally edit only tracks.js and the audio/ folder.
+
+REPLACE A BEAT WITHOUT CHANGING ANYTHING ELSE
+1. Delete/replace its file inside audio/.
+2. Keep exactly the same filename.
+Done. No HTML edits.
+
+CHANGE THE NAME SHOWN ON THE WEBSITE
+Open tracks.js and change only:
+  label: "Old name"
+to:
+  label: "New name"
+
+ADD A BEAT
+1. Upload the audio file to audio/
+2. Add one line in tracks.js, e.g.
+  { label: "New Beat", file: "new-beat.mp3", featured: false },
+
+REMOVE A BEAT
+Delete its line from tracks.js. You may also delete its audio file.
+
+FEATURE / ARCHIVE
+featured: true   = shown at the top
+featured: false  = hidden inside Archive
+
+REORDER
+Move the line up or down in tracks.js.
+Featured tracks are displayed in their listed order; Archive tracks likewise.
+
+IMPORTANT
+The visible labels do NOT have to match the filenames.
+You should not need to edit index.html.

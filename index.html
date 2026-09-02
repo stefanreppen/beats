@@ -1,168 +1,280 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="robots" content="noindex,nofollow,noarchive" />
-  <title>A few beats</title>
-  <style>
-    :root {
-      color-scheme: dark;
-      --bg: #0c0c0d;
-      --panel: #151517;
-      --line: #2a2a2e;
-      --text: #f1f1f2;
-      --muted: #98989f;
-      --accent: #f1f1f2;
-    }
-
-    * { box-sizing: border-box; }
-
-    html, body { margin: 0; min-height: 100%; }
-
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    main {
-      width: min(720px, calc(100% - 40px));
-      margin: 0 auto;
-      padding: 72px 0 56px;
-    }
-
-    header { margin-bottom: 42px; }
-
-    h1 {
-      margin: 0 0 10px;
-      font-size: clamp(34px, 7vw, 54px);
-      line-height: 1;
-      letter-spacing: -0.045em;
-      font-weight: 650;
-    }
-
-    .subhead {
-      margin: 0;
-      color: var(--muted);
-      font-size: 15px;
-      line-height: 1.5;
-    }
-
-    .track-list {
-      border-top: 1px solid var(--line);
-    }
-
-    .track {
-      padding: 24px 0 25px;
-      border-bottom: 1px solid var(--line);
-    }
-
-    .track-head {
-      display: flex;
-      align-items: baseline;
-      gap: 14px;
-      margin-bottom: 13px;
-    }
-
-    .number {
-      width: 24px;
-      flex: 0 0 24px;
-      color: var(--muted);
-      font-size: 12px;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .title {
-      margin: 0;
-      font-size: 18px;
-      font-weight: 580;
-      letter-spacing: -0.015em;
-    }
-
-    audio {
-      display: block;
-      width: 100%;
-      height: 38px;
-    }
-
-    footer {
-      padding-top: 35px;
-      color: var(--muted);
-      font-size: 13px;
-    }
-
-    footer a {
-      color: var(--text);
-      text-decoration-thickness: 1px;
-      text-underline-offset: 3px;
-    }
-
-    @media (max-width: 520px) {
-      main { width: min(100% - 28px, 720px); padding-top: 45px; }
-      header { margin-bottom: 30px; }
-      .track { padding: 20px 0 22px; }
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>A few beats</title>
+<style>
+  :root {
+    --bg:#fff;
+    --text:#151515;
+    --muted:#707070;
+    --line:#dedede;
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family: Arial, Helvetica, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  main {
+    width:min(760px, calc(100% - 40px));
+    margin:72px auto 90px;
+  }
+  h1 {
+    font-size:34px;
+    font-weight:500;
+    letter-spacing:-0.02em;
+    margin:0 0 46px;
+  }
+  .section-title {
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:.14em;
+    margin:0 0 16px;
+  }
+  .controls {
+    display:flex;
+    gap:18px;
+    align-items:center;
+    margin:0 0 24px;
+  }
+  button {
+    appearance:none;
+    border:0;
+    background:none;
+    padding:0;
+    color:var(--text);
+    font:inherit;
+    cursor:pointer;
+  }
+  .controls button {
+    font-size:13px;
+    text-decoration:underline;
+    text-underline-offset:3px;
+  }
+  .track {
+    border-top:1px solid var(--line);
+    padding:18px 0 16px;
+  }
+  .track:last-child { border-bottom:1px solid var(--line); }
+  .track-head {
+    display:flex;
+    align-items:baseline;
+    gap:12px;
+    margin-bottom:10px;
+  }
+  .num {
+    width:24px;
+    flex:none;
+    font-size:12px;
+    color:var(--muted);
+  }
+  .label {
+    font-size:18px;
+    line-height:1.2;
+  }
+  .track.playing .label { font-weight:600; }
+  audio { width:100%; height:32px; }
+  details {
+    margin-top:46px;
+    border-top:1px solid var(--line);
+    padding-top:18px;
+  }
+  summary {
+    list-style:none;
+    cursor:pointer;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-size:13px;
+  }
+  summary::-webkit-details-marker { display:none; }
+  .archive-inner { padding-top:22px; }
+  .archive .track { padding:12px 0 10px; }
+  .archive .label { font-size:15px; }
+  footer {
+    margin-top:56px;
+    font-size:12px;
+    color:var(--muted);
+  }
+  footer a { color:inherit; }
+</style>
 </head>
 <body>
-  <main>
-    <header>
-      <h1>A few beats</h1>
-      <p class="subhead">Four tracks.</p>
-    </header>
+<main>
+  <h1>A few beats</h1>
 
-    <section class="track-list" aria-label="Beats">
-      <article class="track">
-        <div class="track-head">
-          <span class="number">01</span>
-          <h2 class="title">So Wrong</h2>
-        </div>
-        <audio controls preload="metadata" src="audio/01-so-wrong.mp3"></audio>
-      </article>
+  <section>
+    <div class="section-title">Featured</div>
+    <div class="controls">
+      <button id="playScope">Play featured</button>
+      <button id="shuffleScope">Shuffle featured</button>
+    </div>
+    <div id="featured"></div>
+  </section>
 
-      <article class="track">
-        <div class="track-head">
-          <span class="number">02</span>
-          <h2 class="title">Track 06</h2>
-        </div>
-        <audio controls preload="metadata" src="audio/02-track06.mp3"></audio>
-      </article>
+  <details id="archiveDetails">
+    <summary>
+      <span>Archive</span>
+      <span id="archiveCount"></span>
+    </summary>
+    <div class="archive-inner">
+      <div id="archive" class="archive"></div>
+    </div>
+  </details>
 
-      <article class="track">
-        <div class="track-head">
-          <span class="number">03</span>
-          <h2 class="title">Track 04</h2>
-        </div>
-        <audio controls preload="metadata" src="audio/03-track04.mp3"></audio>
-      </article>
+  <footer>
+    <a href="mailto:your@email.com">your@email.com</a>
+  </footer>
+</main>
 
-      <article class="track">
-        <div class="track-head">
-          <span class="number">04</span>
-          <h2 class="title">Beat 31</h2>
-        </div>
-        <audio controls preload="metadata" src="audio/04-beat31.mp3"></audio>
-      </article>
-    </section>
+<script src="tracks.js"></script>
+<script>
+(() => {
+  const tracks = (window.BEATS || []).map((t,i) => ({...t, index:i}));
+  const featured = tracks.filter(t => t.featured);
+  const archive = tracks.filter(t => !t.featured);
 
-    <footer>
-      <!-- Replace this with the email address you want labels to use. -->
-      <span>Contact: </span><a href="mailto:your@email.com">your@email.com</a>
-    </footer>
-  </main>
+  const featuredEl = document.getElementById('featured');
+  const archiveEl = document.getElementById('archive');
+  const details = document.getElementById('archiveDetails');
+  const archiveCount = document.getElementById('archiveCount');
+  const playScope = document.getElementById('playScope');
+  const shuffleScope = document.getElementById('shuffleScope');
 
-  <script>
-    // Keep playback simple: starting one track pauses the others.
-    const players = [...document.querySelectorAll('audio')];
-    players.forEach(player => {
-      player.addEventListener('play', () => {
-        players.forEach(other => {
-          if (other !== player) other.pause();
-        });
-      });
+  archiveCount.textContent = `${archive.length} more`;
+
+  const audioByIndex = new Map();
+  const rowByIndex = new Map();
+
+  function makeRow(t, visibleNumber) {
+    const row = document.createElement('div');
+    row.className = 'track';
+    row.dataset.index = t.index;
+
+    const head = document.createElement('div');
+    head.className = 'track-head';
+
+    const num = document.createElement('span');
+    num.className = 'num';
+    num.textContent = String(visibleNumber).padStart(2,'0');
+
+    const label = document.createElement('span');
+    label.className = 'label';
+    label.textContent = t.label;
+
+    const audio = document.createElement('audio');
+    audio.controls = true;
+    audio.preload = 'metadata';
+    audio.src = 'audio/' + encodeURIComponent(t.file).replace(/%2F/g,'/');
+
+    head.append(num,label);
+    row.append(head,audio);
+
+    audioByIndex.set(t.index, audio);
+    rowByIndex.set(t.index, row);
+
+    audio.addEventListener('play', () => {
+      for (const [idx, a] of audioByIndex) {
+        if (a !== audio && !a.paused) a.pause();
+        rowByIndex.get(idx)?.classList.toggle('playing', a === audio);
+      }
+      if (!playlistActive) return;
+      currentPlaylistPos = playlist.indexOf(t.index);
     });
-  </script>
+
+    audio.addEventListener('ended', () => {
+      row.classList.remove('playing');
+      if (playlistActive) playNext();
+    });
+
+    return row;
+  }
+
+  featured.forEach((t,i) => featuredEl.appendChild(makeRow(t,i+1)));
+  archive.forEach((t,i) => archiveEl.appendChild(makeRow(t, featured.length+i+1)));
+
+  let playlist = [];
+  let currentPlaylistPos = -1;
+  let playlistActive = false;
+
+  function stopEverything() {
+    for (const a of audioByIndex.values()) {
+      a.pause();
+      a.currentTime = 0;
+    }
+    for (const r of rowByIndex.values()) r.classList.remove('playing');
+  }
+
+  function scopeTracks() {
+    return details.open ? tracks : featured;
+  }
+
+  function updateScopeLabels() {
+    if (details.open) {
+      playScope.textContent = 'Play all';
+      shuffleScope.textContent = 'Shuffle all';
+    } else {
+      playScope.textContent = 'Play featured';
+      shuffleScope.textContent = 'Shuffle featured';
+    }
+  }
+
+  function startPlaylist(order) {
+    stopEverything();
+    playlist = order.map(t => t.index);
+    currentPlaylistPos = 0;
+    playlistActive = true;
+    playCurrent();
+  }
+
+  function playCurrent() {
+    if (currentPlaylistPos < 0 || currentPlaylistPos >= playlist.length) {
+      playlistActive = false;
+      return;
+    }
+    const idx = playlist[currentPlaylistPos];
+    const audio = audioByIndex.get(idx);
+    if (!audio) return;
+    audio.currentTime = 0;
+    audio.play();
+  }
+
+  function playNext() {
+    currentPlaylistPos++;
+    if (currentPlaylistPos >= playlist.length) {
+      playlistActive = false;
+      currentPlaylistPos = -1;
+      return;
+    }
+    playCurrent();
+  }
+
+  playScope.addEventListener('click', () => {
+    const scope = scopeTracks();
+    // When Archive is open, tracks is the full top-to-bottom order:
+    // featured beat #1 first, then the rest.
+    startPlaylist(scope);
+  });
+
+  shuffleScope.addEventListener('click', () => {
+    const arr = [...scopeTracks()];
+    for (let i=arr.length-1;i>0;i--) {
+      const j = Math.floor(Math.random()*(i+1));
+      [arr[i],arr[j]] = [arr[j],arr[i]];
+    }
+    startPlaylist(arr);
+  });
+
+  details.addEventListener('toggle', updateScopeLabels);
+  updateScopeLabels();
+
+  // If visitor manually seeks/plays a different audio while an auto-playlist
+  // is active, it remains the active sequence from that track onward.
+})();
+</script>
 </body>
 </html>
