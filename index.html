@@ -6,41 +6,42 @@
 <title>A few beats</title>
 <style>
   :root {
-    --bg:#fff;
-    --text:#151515;
-    --muted:#707070;
-    --line:#dedede;
+    --bg:#0a0a0a;
+    --text:#f2f2f2;
+    --muted:#8d8d8d;
+    --line:#2b2b2b;
   }
+
   * { box-sizing:border-box; }
+
   body {
     margin:0;
     background:var(--bg);
     color:var(--text);
-    font-family: Arial, Helvetica, sans-serif;
-    -webkit-font-smoothing: antialiased;
+    font-family:Arial, Helvetica, sans-serif;
+    -webkit-font-smoothing:antialiased;
   }
+
   main {
     width:min(760px, calc(100% - 40px));
     margin:72px auto 90px;
   }
+
   h1 {
     font-size:34px;
     font-weight:500;
     letter-spacing:-0.02em;
-    margin:0 0 46px;
+    margin:0 0 42px;
   }
-  .section-title {
-    font-size:12px;
-    text-transform:uppercase;
-    letter-spacing:.14em;
-    margin:0 0 16px;
-  }
+
   .controls {
     display:flex;
+    flex-wrap:wrap;
     gap:18px;
     align-items:center;
-    margin:0 0 24px;
+    margin:0 0 26px;
   }
+
   button {
     appearance:none;
     border:0;
@@ -50,39 +51,58 @@
     font:inherit;
     cursor:pointer;
   }
+
   .controls button {
     font-size:13px;
     text-decoration:underline;
     text-underline-offset:3px;
   }
+
   .track {
     border-top:1px solid var(--line);
     padding:18px 0 16px;
   }
-  .track:last-child { border-bottom:1px solid var(--line); }
+
+  .track:last-child {
+    border-bottom:1px solid var(--line);
+  }
+
   .track-head {
     display:flex;
     align-items:baseline;
     gap:12px;
     margin-bottom:10px;
   }
+
   .num {
     width:24px;
     flex:none;
     font-size:12px;
     color:var(--muted);
   }
+
   .label {
     font-size:18px;
     line-height:1.2;
   }
-  .track.playing .label { font-weight:600; }
-  audio { width:100%; height:32px; }
+
+  .track.playing .label {
+    font-weight:600;
+  }
+
+  audio {
+    width:100%;
+    height:32px;
+    filter:invert(1) hue-rotate(180deg);
+    opacity:.9;
+  }
+
   details {
     margin-top:46px;
     border-top:1px solid var(--line);
     padding-top:18px;
   }
+
   summary {
     list-style:none;
     cursor:pointer;
@@ -91,16 +111,47 @@
     align-items:center;
     font-size:13px;
   }
-  summary::-webkit-details-marker { display:none; }
-  .archive-inner { padding-top:22px; }
-  .archive .track { padding:12px 0 10px; }
-  .archive .label { font-size:15px; }
+
+  summary::-webkit-details-marker {
+    display:none;
+  }
+
+  .more-label {
+    font-size:13px;
+  }
+
+  .more-count {
+    color:var(--muted);
+    font-size:12px;
+  }
+
+  .archive-inner {
+    padding-top:22px;
+  }
+
+  .archive .track {
+    padding:12px 0 10px;
+  }
+
+  .archive .label {
+    font-size:15px;
+  }
+
   footer {
     margin-top:56px;
     font-size:12px;
     color:var(--muted);
   }
-  footer a { color:inherit; }
+
+  footer a {
+    color:inherit;
+    text-decoration:none;
+  }
+
+  footer a:hover {
+    text-decoration:underline;
+    text-underline-offset:3px;
+  }
 </style>
 </head>
 <body>
@@ -108,18 +159,18 @@
   <h1>A few beats</h1>
 
   <section>
-    <div class="section-title">Featured</div>
     <div class="controls">
       <button id="playScope">Play featured</button>
       <button id="shuffleScope">Shuffle featured</button>
+      <button id="nextTrack">Next</button>
     </div>
     <div id="featured"></div>
   </section>
 
   <details id="archiveDetails">
     <summary>
-      <span>Archive</span>
-      <span id="archiveCount"></span>
+      <span class="more-label">More beats</span>
+      <span id="archiveCount" class="more-count"></span>
     </summary>
     <div class="archive-inner">
       <div id="archive" class="archive"></div>
@@ -127,7 +178,7 @@
   </details>
 
   <footer>
-    <a href="mailto:your@email.com">your@email.com</a>
+    <a href="mailto:stefan.reppen@gmail.com">stefan.reppen@gmail.com</a>
   </footer>
 </main>
 
@@ -144,11 +195,17 @@
   const archiveCount = document.getElementById('archiveCount');
   const playScope = document.getElementById('playScope');
   const shuffleScope = document.getElementById('shuffleScope');
+  const nextTrack = document.getElementById('nextTrack');
 
   archiveCount.textContent = `${archive.length} more`;
 
   const audioByIndex = new Map();
   const rowByIndex = new Map();
+
+  let playlist = [];
+  let currentPlaylistPos = -1;
+  let playlistActive = false;
+  let lastPlayedIndex = null;
 
   function makeRow(t, visibleNumber) {
     const row = document.createElement('div');
@@ -178,17 +235,25 @@
     rowByIndex.set(t.index, row);
 
     audio.addEventListener('play', () => {
+      lastPlayedIndex = t.index;
+
       for (const [idx, a] of audioByIndex) {
         if (a !== audio && !a.paused) a.pause();
         rowByIndex.get(idx)?.classList.toggle('playing', a === audio);
       }
-      if (!playlistActive) return;
-      currentPlaylistPos = playlist.indexOf(t.index);
+
+      if (playlistActive) {
+        const position = playlist.indexOf(t.index);
+        if (position !== -1) currentPlaylistPos = position;
+      }
     });
 
     audio.addEventListener('ended', () => {
       row.classList.remove('playing');
-      if (playlistActive) playNext();
+
+      if (playlistActive) {
+        playNextInPlaylist();
+      }
     });
 
     return row;
@@ -197,14 +262,10 @@
   featured.forEach((t,i) => featuredEl.appendChild(makeRow(t,i+1)));
   archive.forEach((t,i) => archiveEl.appendChild(makeRow(t, featured.length+i+1)));
 
-  let playlist = [];
-  let currentPlaylistPos = -1;
-  let playlistActive = false;
-
-  function stopEverything() {
+  function stopEverything(resetPosition = true) {
     for (const a of audioByIndex.values()) {
       a.pause();
-      a.currentTime = 0;
+      if (resetPosition) a.currentTime = 0;
     }
     for (const r of rowByIndex.values()) r.classList.remove('playing');
   }
@@ -228,52 +289,91 @@
     playlist = order.map(t => t.index);
     currentPlaylistPos = 0;
     playlistActive = true;
-    playCurrent();
+    playCurrentPlaylistTrack();
   }
 
-  function playCurrent() {
-    if (currentPlaylistPos < 0 || currentPlaylistPos >= playlist.length) {
+  function playCurrentPlaylistTrack() {
+    if (
+      currentPlaylistPos < 0 ||
+      currentPlaylistPos >= playlist.length
+    ) {
       playlistActive = false;
+      currentPlaylistPos = -1;
       return;
     }
+
     const idx = playlist[currentPlaylistPos];
     const audio = audioByIndex.get(idx);
     if (!audio) return;
+
     audio.currentTime = 0;
     audio.play();
   }
 
-  function playNext() {
+  function playNextInPlaylist() {
     currentPlaylistPos++;
+
     if (currentPlaylistPos >= playlist.length) {
       playlistActive = false;
       currentPlaylistPos = -1;
       return;
     }
-    playCurrent();
+
+    playCurrentPlaylistTrack();
+  }
+
+  function playNextGenerally() {
+    if (playlistActive && playlist.length) {
+      playNextInPlaylist();
+      return;
+    }
+
+    const scope = scopeTracks();
+    if (!scope.length) return;
+
+    let nextPos = 0;
+
+    if (lastPlayedIndex !== null) {
+      const currentPos = scope.findIndex(t => t.index === lastPlayedIndex);
+      if (currentPos !== -1) {
+        nextPos = currentPos + 1;
+        if (nextPos >= scope.length) nextPos = 0;
+      }
+    }
+
+    const next = scope[nextPos];
+    stopEverything();
+    playlistActive = false;
+    lastPlayedIndex = next.index;
+
+    const audio = audioByIndex.get(next.index);
+    if (!audio) return;
+
+    audio.currentTime = 0;
+    audio.play();
   }
 
   playScope.addEventListener('click', () => {
-    const scope = scopeTracks();
-    // When Archive is open, tracks is the full top-to-bottom order:
-    // featured beat #1 first, then the rest.
-    startPlaylist(scope);
+    // When More beats is open, scopeTracks() is the complete top-to-bottom
+    // order, beginning with beat #1 at the top of the page.
+    startPlaylist(scopeTracks());
   });
 
   shuffleScope.addEventListener('click', () => {
     const arr = [...scopeTracks()];
-    for (let i=arr.length-1;i>0;i--) {
+
+    for (let i=arr.length-1; i>0; i--) {
       const j = Math.floor(Math.random()*(i+1));
       [arr[i],arr[j]] = [arr[j],arr[i]];
     }
+
     startPlaylist(arr);
   });
 
+  nextTrack.addEventListener('click', playNextGenerally);
+
   details.addEventListener('toggle', updateScopeLabels);
   updateScopeLabels();
-
-  // If visitor manually seeks/plays a different audio while an auto-playlist
-  // is active, it remains the active sequence from that track onward.
 })();
 </script>
 </body>
