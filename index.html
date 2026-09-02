@@ -284,8 +284,19 @@
     }
   }
 
+  function primePlaylistElements(order) {
+    // Chrome applies autoplay permission per media element. Calling load()
+    // on every player while handling the user's Play/Shuffle click unlocks
+    // those elements for automatic continuation later in the playlist.
+    for (const t of order) {
+      const audio = audioByIndex.get(t.index);
+      if (audio) audio.load();
+    }
+  }
+
   function startPlaylist(order) {
     stopEverything();
+    primePlaylistElements(order);
     playlist = order.map(t => t.index);
     currentPlaylistPos = 0;
     playlistActive = true;
