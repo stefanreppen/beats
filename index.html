@@ -31,7 +31,23 @@
     font-size:34px;
     font-weight:500;
     letter-spacing:-0.02em;
-    margin:0 0 42px;
+    margin:0 0 10px;
+  }
+
+  .contact {
+    margin:0 0 38px;
+    font-size:12px;
+    color:var(--muted);
+  }
+
+  .contact a {
+    color:inherit;
+    text-decoration:none;
+  }
+
+  .contact a:hover {
+    text-decoration:underline;
+    text-underline-offset:3px;
   }
 
   .controls {
@@ -56,6 +72,14 @@
     font-size:13px;
     text-decoration:underline;
     text-underline-offset:3px;
+  }
+
+  .queue-player {
+    width:100%;
+    height:32px;
+    margin:0 0 26px;
+    filter:invert(1) hue-rotate(180deg);
+    opacity:.9;
   }
 
   .track {
@@ -157,6 +181,9 @@
 <body>
 <main>
   <h1>A few beats</h1>
+  <div class="contact">
+    <a href="mailto:stefan.reppen@gmail.com">stefan.reppen@gmail.com</a>
+  </div>
 
   <section>
     <div class="controls">
@@ -164,6 +191,7 @@
       <button id="shuffleScope">Shuffle featured</button>
       <button id="nextTrack">Next</button>
     </div>
+    <audio id="queuePlayer" class="queue-player" controls preload="metadata" hidden></audio>
     <div id="featured"></div>
   </section>
 
@@ -177,9 +205,6 @@
     </div>
   </details>
 
-  <footer>
-    <a href="mailto:stefan.reppen@gmail.com">stefan.reppen@gmail.com</a>
-  </footer>
 </main>
 
 <script src="tracks.js"></script>
@@ -196,6 +221,7 @@
   const playScope = document.getElementById('playScope');
   const shuffleScope = document.getElementById('shuffleScope');
   const nextTrack = document.getElementById('nextTrack');
+  const queuePlayer = document.getElementById('queuePlayer');
 
   archiveCount.textContent = `${archive.length} more`;
 
@@ -206,6 +232,37 @@
   let currentPlaylistPos = -1;
   let playlistActive = false;
   let lastPlayedIndex = null;
+  let queueCurrentIndex = null;
+
+  function audioUrl(t) {
+    return 'audio/' + encodeURIComponent(t.file).replace(/%2F/g,'/');
+  }
+
+  function setPlayingRow(index = null) {
+    for (const [idx, row] of rowByIndex) {
+      row.classList.toggle('playing', idx === index);
+    }
+  }
+
+  function pauseManualPlayers(resetPosition = false) {
+    for (const audio of audioByIndex.values()) {
+      audio.pause();
+      if (resetPosition) audio.currentTime = 0;
+    }
+  }
+
+  function cancelQueue(hidePlayer = true) {
+    playlistActive = false;
+    currentPlaylistPos = -1;
+    queueCurrentIndex = null;
+    queuePlayer.pause();
+
+    if (hidePlayer) {
+      queuePlayer.hidden = true;
+      queuePlayer.removeAttribute('src');
+      queuePlayer.load();
+    }
+  }
 
   function makeRow(t, visibleNumber) {
     const row = document.createElement('div');
@@ -226,7 +283,7 @@
     const audio = document.createElement('audio');
     audio.controls = true;
     audio.preload = 'metadata';
-    audio.src = 'audio/' + encodeURIComponent(t.file).replace(/%2F/g,'/');
+    audio.src = audioUrl(t);
 
     head.append(num,label);
     row.append(head,audio);
@@ -235,25 +292,19 @@
     rowByIndex.set(t.index, row);
 
     audio.addEventListener('play', () => {
+      // Directly playing a track cancels any Play/Shuffle queue.
+      cancelQueue(true);
+
+      for (const [idx, other] of audioByIndex) {
+        if (other !== audio && !other.paused) other.pause();
+      }
+
       lastPlayedIndex = t.index;
-
-      for (const [idx, a] of audioByIndex) {
-        if (a !== audio && !a.paused) a.pause();
-        rowByIndex.get(idx)?.classList.toggle('playing', a === audio);
-      }
-
-      if (playlistActive) {
-        const position = playlist.indexOf(t.index);
-        if (position !== -1) currentPlaylistPos = position;
-      }
+      setPlayingRow(t.index);
     });
 
     audio.addEventListener('ended', () => {
       row.classList.remove('playing');
-
-      if (playlistActive) {
-        playNextInPlaylist();
-      }
     });
 
     return row;
@@ -261,14 +312,6 @@
 
   featured.forEach((t,i) => featuredEl.appendChild(makeRow(t,i+1)));
   archive.forEach((t,i) => archiveEl.appendChild(makeRow(t, featured.length+i+1)));
-
-  function stopEverything(resetPosition = true) {
-    for (const a of audioByIndex.values()) {
-      a.pause();
-      if (resetPosition) a.currentTime = 0;
-    }
-    for (const r of rowByIndex.values()) r.classList.remove('playing');
-  }
 
   function scopeTracks() {
     return details.open ? tracks : featured;
@@ -284,57 +327,77 @@
     }
   }
 
-  function primePlaylistElements(order) {
-    // Chrome applies autoplay permission per media element. Calling load()
-    // on every player while handling the user's Play/Shuffle click unlocks
-    // those elements for automatic continuation later in the playlist.
-    for (const t of order) {
-      const audio = audioByIndex.get(t.index);
-      if (audio) audio.load();
-    }
+  function finishPlaylist() {
+    playlistActive = false;
+    currentPlaylistPos = -1;
+    queueCurrentIndex = null;
+    setPlayingRow(null);
+    queuePlayer.hidden = true;
+    queuePlayer.removeAttribute('src');
+    queuePlayer.load();
   }
 
-  function startPlaylist(order) {
-    stopEverything();
-    primePlaylistElements(order);
-    playlist = order.map(t => t.index);
-    currentPlaylistPos = 0;
-    playlistActive = true;
-    playCurrentPlaylistTrack();
-  }
-
-  function playCurrentPlaylistTrack() {
+  function playCurrentQueueTrack() {
     if (
+      !playlistActive ||
       currentPlaylistPos < 0 ||
       currentPlaylistPos >= playlist.length
     ) {
-      playlistActive = false;
-      currentPlaylistPos = -1;
+      finishPlaylist();
       return;
     }
 
     const idx = playlist[currentPlaylistPos];
-    const audio = audioByIndex.get(idx);
-    if (!audio) return;
-
-    audio.currentTime = 0;
-    audio.play();
-  }
-
-  function playNextInPlaylist() {
-    currentPlaylistPos++;
-
-    if (currentPlaylistPos >= playlist.length) {
-      playlistActive = false;
-      currentPlaylistPos = -1;
+    const t = tracks[idx];
+    if (!t) {
+      playNextInPlaylist();
       return;
     }
 
-    playCurrentPlaylistTrack();
+    pauseManualPlayers(false);
+
+    queueCurrentIndex = idx;
+    lastPlayedIndex = idx;
+    setPlayingRow(idx);
+
+    queuePlayer.hidden = false;
+    queuePlayer.src = audioUrl(t);
+    queuePlayer.load();
+
+    const promise = queuePlayer.play();
+    if (promise && typeof promise.catch === 'function') {
+      promise.catch(err => {
+        console.warn('Queue playback could not start:', err);
+      });
+    }
+  }
+
+  function startPlaylist(order) {
+    pauseManualPlayers(false);
+    queuePlayer.pause();
+
+    playlist = order.map(t => t.index);
+    currentPlaylistPos = 0;
+    playlistActive = playlist.length > 0;
+
+    if (playlistActive) playCurrentQueueTrack();
+  }
+
+  function playNextInPlaylist() {
+    if (!playlistActive) return;
+
+    currentPlaylistPos += 1;
+
+    if (currentPlaylistPos >= playlist.length) {
+      finishPlaylist();
+      return;
+    }
+
+    playCurrentQueueTrack();
   }
 
   function playNextGenerally() {
-    if (playlistActive && playlist.length) {
+    if (playlistActive) {
       playNextInPlaylist();
       return;
     }
@@ -347,41 +410,48 @@
     if (lastPlayedIndex !== null) {
       const currentPos = scope.findIndex(t => t.index === lastPlayedIndex);
       if (currentPos !== -1) {
-        nextPos = currentPos + 1;
-        if (nextPos >= scope.length) nextPos = 0;
+        nextPos = (currentPos + 1) % scope.length;
       }
     }
 
     const next = scope[nextPos];
-    stopEverything();
-    playlistActive = false;
-    lastPlayedIndex = next.index;
 
+    cancelQueue(true);
+    pauseManualPlayers(true);
+
+    lastPlayedIndex = next.index;
     const audio = audioByIndex.get(next.index);
     if (!audio) return;
 
     audio.currentTime = 0;
-    audio.play();
+    const promise = audio.play();
+    if (promise && typeof promise.catch === 'function') {
+      promise.catch(err => console.warn('Playback could not start:', err));
+    }
   }
 
   playScope.addEventListener('click', () => {
-    // When More beats is open, scopeTracks() is the complete top-to-bottom
-    // order, beginning with beat #1 at the top of the page.
+    // With More beats open, this is the complete top-to-bottom order
+    // beginning with beat #1.
     startPlaylist(scopeTracks());
   });
 
   shuffleScope.addEventListener('click', () => {
     const arr = [...scopeTracks()];
 
-    for (let i=arr.length-1; i>0; i--) {
-      const j = Math.floor(Math.random()*(i+1));
-      [arr[i],arr[j]] = [arr[j],arr[i]];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
     }
 
     startPlaylist(arr);
   });
 
   nextTrack.addEventListener('click', playNextGenerally);
+
+  queuePlayer.addEventListener('ended', () => {
+    if (playlistActive) playNextInPlaylist();
+  });
 
   details.addEventListener('toggle', updateScopeLabels);
   updateScopeLabels();
