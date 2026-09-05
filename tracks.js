@@ -43,4 +43,5 @@ window.BEATS = [
   { label: "beat47particular", file: "beat47particular.mp3", featured: false },
   { label: "escorts.standtoseeyoucry", file: "escorts.standtoseeyoucry.mp3", featured: false },
   { label: "stayforthenight.edited", file: "stayforthenight.edited.mp3", featured: false },
+  { label: "PadC1", file: "PadC1_start30_fadein5_fadeout5.mp3", featured: false }
 ];
