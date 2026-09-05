@@ -15,9 +15,9 @@
 window.BEATS = [
   { label: "So Wrong", file: "01-so-wrong.mp3", featured: true },
   { label: "Need U", file: "02-need-u.mp3", featured: true },
-  { label: "Track 04", file: "03-track-04.mp3", featured: true },
+  { label: "Pad C2", file: "05-pad-c2.mp3", featured: true },
   { label: "Beat 31", file: "04-beat-31.mp3", featured: true },
-  { label: "Pad C2", file: "05-pad-c2.mp3", featured: false },
+  { label: "Track 04", file: "03-track-04.mp3", featured: false },
   { label: "Beat 12", file: "06-beat-12.mp3", featured: false },
   { label: "Track 15", file: "07-track-15.mp3", featured: false },
   { label: "Track 24", file: "08-track-24.mp3", featured: false },
