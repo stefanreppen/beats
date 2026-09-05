@@ -222,7 +222,7 @@
 <script src="tracks.js"></script>
 <script>
 (() => {
-  const tracks = (window.BEATS || []).map((t,i) => ({...t, index:i}));
+  const tracks = (window.BEATS || []).map((t, i) => ({ ...t, index: i }));
   const featured = tracks.filter(t => t.featured);
   const archive = tracks.filter(t => !t.featured);
 
@@ -246,10 +246,11 @@
   let currentPlaylistPos = -1;
   let playlistActive = false;
   let lastPlayedIndex = null;
-  let queueCurrentIndex = null;
+  let loadGeneration = 0;
+  let advancing = false;
 
   function audioUrl(t) {
-    return 'audio/' + encodeURIComponent(t.file).replace(/%2F/g,'/');
+    return 'audio/' + encodeURIComponent(t.file).replace(/%2F/g, '/');
   }
 
   function setPlayingRow(index = null) {
@@ -265,18 +266,23 @@
     }
   }
 
+  function clearQueuePlayer() {
+    loadGeneration += 1;
+    queuePlayer.pause();
+    queuePlayer.removeAttribute('src');
+    queuePlayer.load();
+  }
+
   function cancelQueue(hidePlayer = true) {
     playlistActive = false;
     currentPlaylistPos = -1;
-    queueCurrentIndex = null;
-    queuePlayer.pause();
+    advancing = false;
+    clearQueuePlayer();
 
     if (hidePlayer) {
       queuePlayer.hidden = true;
       nowPlaying.hidden = true;
       nowPlayingTitle.textContent = '';
-      queuePlayer.removeAttribute('src');
-      queuePlayer.load();
     }
   }
 
@@ -290,7 +296,7 @@
 
     const num = document.createElement('span');
     num.className = 'num';
-    num.textContent = String(visibleNumber).padStart(2,'0');
+    num.textContent = String(visibleNumber).padStart(2, '0');
 
     const label = document.createElement('span');
     label.className = 'label';
@@ -301,17 +307,16 @@
     audio.preload = 'metadata';
     audio.src = audioUrl(t);
 
-    head.append(num,label);
-    row.append(head,audio);
+    head.append(num, label);
+    row.append(head, audio);
 
     audioByIndex.set(t.index, audio);
     rowByIndex.set(t.index, row);
 
     audio.addEventListener('play', () => {
-      // Directly playing a track cancels any Play/Shuffle queue.
       cancelQueue(true);
 
-      for (const [idx, other] of audioByIndex) {
+      for (const other of audioByIndex.values()) {
         if (other !== audio && !other.paused) other.pause();
       }
 
@@ -326,8 +331,10 @@
     return row;
   }
 
-  featured.forEach((t,i) => featuredEl.appendChild(makeRow(t,i+1)));
-  archive.forEach((t,i) => archiveEl.appendChild(makeRow(t, featured.length+i+1)));
+  featured.forEach((t, i) => featuredEl.appendChild(makeRow(t, i + 1)));
+  archive.forEach((t, i) =>
+    archiveEl.appendChild(makeRow(t, featured.length + i + 1))
+  );
 
   function scopeTracks() {
     return details.open ? tracks : featured;
@@ -346,13 +353,13 @@
   function finishPlaylist() {
     playlistActive = false;
     currentPlaylistPos = -1;
-    queueCurrentIndex = null;
+    advancing = false;
     setPlayingRow(null);
+    clearQueuePlayer();
+
     queuePlayer.hidden = true;
     nowPlaying.hidden = true;
     nowPlayingTitle.textContent = '';
-    queuePlayer.removeAttribute('src');
-    queuePlayer.load();
   }
 
   function playCurrentQueueTrack() {
@@ -367,58 +374,79 @@
 
     const idx = playlist[currentPlaylistPos];
     const t = tracks[idx];
-    if (!t) {
-      playNextInPlaylist();
+
+    if (!t || !t.file) {
+      advanceQueue();
       return;
     }
 
     pauseManualPlayers(false);
 
-    queueCurrentIndex = idx;
     lastPlayedIndex = idx;
     setPlayingRow(idx);
 
-    nowPlayingTitle.textContent = t.label;
+    nowPlayingTitle.textContent =
+      `${t.label}  (${currentPlaylistPos + 1}/${playlist.length})`;
     nowPlaying.hidden = false;
     queuePlayer.hidden = false;
+
+    const thisGeneration = ++loadGeneration;
     queuePlayer.src = audioUrl(t);
     queuePlayer.load();
 
     const promise = queuePlayer.play();
+
     if (promise && typeof promise.catch === 'function') {
       promise.catch(err => {
-        console.warn('Queue playback could not start:', err);
+        if (!playlistActive || thisGeneration !== loadGeneration) return;
+
+        console.warn('Could not play queue track; skipping it:', t.file, err);
+
+        window.setTimeout(() => {
+          if (playlistActive && thisGeneration === loadGeneration) {
+            advanceQueue();
+          }
+        }, 100);
       });
     }
   }
 
   function startPlaylist(order) {
     pauseManualPlayers(false);
-    queuePlayer.pause();
+    clearQueuePlayer();
 
     playlist = order.map(t => t.index);
     currentPlaylistPos = 0;
     playlistActive = playlist.length > 0;
+    advancing = false;
 
-    if (playlistActive) playCurrentQueueTrack();
+    if (playlistActive) {
+      playCurrentQueueTrack();
+    } else {
+      finishPlaylist();
+    }
   }
 
-  function playNextInPlaylist() {
-    if (!playlistActive) return;
+  function advanceQueue() {
+    if (!playlistActive || advancing) return;
 
+    advancing = true;
+    loadGeneration += 1;
     currentPlaylistPos += 1;
 
     if (currentPlaylistPos >= playlist.length) {
+      advancing = false;
       finishPlaylist();
       return;
     }
 
+    advancing = false;
     playCurrentQueueTrack();
   }
 
   function playNextGenerally() {
     if (playlistActive) {
-      playNextInPlaylist();
+      advanceQueue();
       return;
     }
 
@@ -451,8 +479,6 @@
   }
 
   playScope.addEventListener('click', () => {
-    // With More beats open, this is the complete top-to-bottom order
-    // beginning with beat #1.
     startPlaylist(scopeTracks());
   });
 
@@ -470,7 +496,19 @@
   nextTrack.addEventListener('click', playNextGenerally);
 
   queuePlayer.addEventListener('ended', () => {
-    if (playlistActive) playNextInPlaylist();
+    advanceQueue();
+  });
+
+  queuePlayer.addEventListener('error', () => {
+    if (!playlistActive) return;
+
+    const generationAtError = loadGeneration;
+    window.setTimeout(() => {
+      if (playlistActive && generationAtError === loadGeneration) {
+        console.warn('Audio file failed to load; skipping to the next beat.');
+        advanceQueue();
+      }
+    }, 100);
   });
 
   details.addEventListener('toggle', updateScopeLabels);
