@@ -34,7 +34,7 @@ window.BEATS = [
   { label: "Beat03_Thatsthatsthats", file: "Beat03_Thatsthatsthats.mp3", featured: false },
   { label: "PadA2edited", file: "PadA2edited.mp3", featured: false },
   { label: "So Fine", file: "So Fine.mp3", featured: false },
-  { label: "Track02LoveuWeldonelrv.maybe.edited", file: "Track02LoveuWeldonelrv.maybe.edited.mp3", featured: false },
+  { label: "Track02LoveuWeldonelrv.maybe.edited", file: "Track02LoveuWeldoneIrv.maybe.edited.mp3", featured: false },
   { label: "Track10.compressyourself", file: "Track10.compressyourself.mp3", featured: false },
   { label: "Track10lvsgtme.edited", file: "Track10lvsgtme.edited.mp3", featured: false },
   { label: "Track12.withsecsilence", file: "Track12.withsecsilence.mp3", featured: false },
